@@ -36,7 +36,7 @@ if(config.git.useGit){
 		var http = require('http')
 		var server = http.createServer(function (req, res) {
 		    repos.handle(req, res)
-		})
+		}) 
 		server.listen(config.git.port)
 		console.log("Marathon is now listening for git pushes on port " + config.git.port)
 
