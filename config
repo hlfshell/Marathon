@@ -1,0 +1,50 @@
+{
+
+	"marathon": {
+		"port": 2525,
+		"lockDelay": 10,
+	},
+
+	"git": {
+		"useGit": true,
+		"port": 2323,
+		"auth": false,
+		"keys": ""
+	},
+
+	"daemon": {
+		"appCheckDelay": 100
+	},
+
+	"host": {
+		"type": "route",
+		"domain": "",
+		"listenPort": 80,
+	},
+
+	"nginx": {
+		"confDir": "/etc/nginx/sites-enabled",
+		"pidLocation": "/var/run/nginx.pid"
+	},
+
+	"Docker": {
+		"connection": {
+			"socketPath": "/var/run/docker.sock"
+		}
+	},
+
+	"node": {
+		"defaultImage": ""
+	},
+
+	"python": {
+		"defaultImage": ""
+	},
+
+	"ruby": {
+		"defaultImage": ""
+	},
+
+
+
+}

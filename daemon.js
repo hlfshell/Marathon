@@ -1,9 +1,11 @@
 var async = require('async')
 
+var config = require('./config')
+
 var swig = require('swig')
 
 var Docker = require('dockerode')
-var docker = new Docker({socketPath: '/var/run/docker.sock'})
+var docker = new Docker(config.docker.connection)
 
 //models
 var Application = require('./application')(docker)
@@ -58,8 +60,8 @@ delete appFolders
 var nginxEngaged = false
 var nginx = require('nginx-vhosts')(
 	{
-		confDir: '/etc/nginx/sites-enabled',
-		pidLocation: '/var/run/nginx.pid'
+		confDir: config.nginx.confDir,
+		pidLocation: config.nginx.pidLocation
 	},
 	function(nginxStatus){
 		if(nginxStatus){
@@ -78,7 +80,7 @@ var daemon = function(){
 	var checkOnApp = function(){
 		//If nginx is off, we must not do anything
 		if(!nginxEngaged){
-			setTimeout(checkOnApp, 100)
+			setTimeout(checkOnApp, config.daemon.appCheckDelay)
 			return
 		}
 
@@ -141,7 +143,7 @@ var daemon = function(){
 			if(err){
 				console.log("Error!", err)
 			} else {
-				setTimeout(checkOnApp, 100)
+				setTimeout(checkOnApp, config.daemon.appCheckDelay)
 			}
 		})
 	}

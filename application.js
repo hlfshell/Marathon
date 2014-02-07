@@ -1,4 +1,5 @@
 var async = require('async')
+var config = require('./config')
 
 module.exports = function(docker){
 
@@ -64,7 +65,7 @@ module.exports = function(docker){
 		if(fs.existsSync(__dirname + '/apps/' + self.name + '/containers.lock')){
 			//Because the containers isdo file locked, we set a timeout, return,
 			//and the timeout retries this until unlocked.
-			setTimeout(self.launchContainer(cb), 10)
+			setTimeout(self.launchContainer(cb), config.marathon.lockDelay)
 			return
 		} else {
 			fs.writeFileSync(__dirname + '/apps/' + self.name + '/containers.lock', 'Such container. Much Lock. Wow.')
@@ -121,7 +122,7 @@ module.exports = function(docker){
 		if(fs.existsSync(__dirname + '/apps/' + self.name + '/containers.lock')){
 			//Because the containers isdo file locked, we set a timeout, return,
 			//and the timeout retries this until unlocked.
-			setTimeout(this.launchContainer(cb), 10)
+			setTimeout(this.launchContainer(cb), config.marathon.lockDelay)
 			return
 		} else {
 			fs.writeFileSync(__dirname + '/apps/' + self.name + '/containers.lock', 'Such container. Much Lock. Wow.')
