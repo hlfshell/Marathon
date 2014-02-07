@@ -8,6 +8,8 @@ if(!fs.exists(__dirname + '/config')){
 
 var config = require('./config')
 
+var applications = require('./ApplicationList')
+
 portscanner.checkPortStatus(config.marathon.port, '127.0.0.1', function(err, status) {
 	if(status != 'open'){
 		console.log("The chosen port for Marathon is not available.")
@@ -16,7 +18,7 @@ portscanner.checkPortStatus(config.marathon.port, '127.0.0.1', function(err, sta
 
 	var express = require('express')
 	var app = express()
-	require('./Routes')(app)
+	require('./Routes')(app, applications)
 
 	app.listen(config.marathon.port)
 	console.log("Marathon server is now listening on port " + config.marathon.port)

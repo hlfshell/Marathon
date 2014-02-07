@@ -3,7 +3,7 @@ var async = require('async')
 var fs = require('fs-extra')
 var config = require('./config')
 
-module.export = function(){
+module.export = function(applications){
 
 	var repos = pushover(function(repo){
 		//Dynamically figure out where the repos will be stored.
@@ -31,7 +31,8 @@ module.export = function(){
 			},
 
 			function(done){
-				//Let's find the application object in applications[]
+				//Let's find the application object in applications[].
+				//Note - we might not find it if it doesn't exist yet.
 			}
 
 		], function(err){
