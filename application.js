@@ -7,6 +7,37 @@ module.exports = function(docker){
 		this.name = name
 		this.containers = []
 		this.startedAt = null
+
+		this.config = null
+
+		
+	}
+
+	/*
+	* loadApplication(callback(err, application))
+	* 
+	* Load the application from memory if it exists.
+	* This would only be called on initial daemon startup,
+	* which would be loading from memory applications we
+	* already know about
+	*
+	*/
+	Application.prototype.loadApplication(cb){
+		var self = this
+
+
+	}
+
+	/*
+	* createApplication(callback(err, application))
+	*
+	* This is called when a new application is created.
+	* It will create all necessary application files and
+	* folders.
+	*
+	*/
+	Application.prototype.createApplication(cb){
+
 	}
 
 	/*
@@ -18,13 +49,6 @@ module.exports = function(docker){
 	*/
 	Application.prototype.containerStatuses = function(cb){
 		var self = this
-		if(fs.existsSync(__dirname + '/apps/' + self.name + '/status.lock')){
-			//Because the status is locked, we return a in-progress notification
-			cb('Status is being checked already', null)
-			return
-		} else {
-			fs.writeFileSync(__dirname + '/apps/' + self.name + '/status.lock', 'Lock ALL the statuses! Eh - actually, wait - just this one')
-		}
 
 		var containerStatuses = []
 		async.each(self.containers, function(container, done){
@@ -43,33 +67,24 @@ module.exports = function(docker){
 			})
 
 		}, function(err){
-			//Release lock
-			fs.unlinkSync(__dirname + '/apps/' + self.name + '/status.lock')
 			//Return!
 			cb(err, containerStatuses)
 		})
 	}
 
 	/*
-	* launchContainer( callback(err, container) )
+	* createContainer( callback(err, container) )
 	*
-	* Adds a container to the object, including updating the container
-	* file in our app folder.
-	* Note - this uses a lock for transactions issues, so it might be
-	* delayed
+	* Creates a new container for this application. It then
+	* updates the container file in the application directory
+	* with the container's information
 	*
 	* Returns error, new container
 	*/
-	Application.prototype.launchContainer(cb){
+	Application.prototype.createContainer(cb){
 		var self = this
-		if(fs.existsSync(__dirname + '/apps/' + self.name + '/containers.lock')){
-			//Because the containers isdo file locked, we set a timeout, return,
-			//and the timeout retries this until unlocked.
-			setTimeout(self.launchContainer(cb), config.marathon.lockDelay)
-			return
-		} else {
-			fs.writeFileSync(__dirname + '/apps/' + self.name + '/containers.lock', 'Such container. Much Lock. Wow.')
-		}
+
+		var container
 
 		async.waterfall([
 
@@ -103,8 +118,6 @@ module.exports = function(docker){
 			}
 
 		], function(err, container){
-			//Release lock
-			fs.unlinkSync(__dirname + '/apps/' + self.name + '/containers.lock')
 			//Return!
 			cb(err, container)
 		})
