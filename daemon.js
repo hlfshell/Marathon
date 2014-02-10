@@ -32,28 +32,29 @@ delete appsFiles
 
 //We have app folders. Build the app objects.
 //App object contains name (dir name) and ids for containers
-var applications = []
+
 appsFolders.forEach(function(appFolder){
+	var application = new Application(appFolder)
 
-	//clear out all known tmp files that were used for locking status
-	var locks = [ 'containers', 'settings', 'status', 'daemonsEye']
-	locks.forEach(function(lock){
-		if(fs.existsSync(__dirname + '/apps/' + appFolder + '/' + lock + '.lock')){
-			fs.unlinkSync(__dirname + '/apps/' + appFolder + '/' + lock + '.lock')
-		}
+	application.loadApplication(function(null, application){
+		//TODO: add application to the applications list upon loading\
 	})
-
-	//Inside of each app folder is two files and a folder.
-	//Folder is a repos of code as is
-	//Files are: 1) container information and 2) app configuration info
-	var app = {
-		name: appFolder,
-		conf: JSON.parse(fs.readFileSync(__dirname + '/apps/' + appFolder + '/conf')),
-		containers: JSON.parse(fs.readFileSync(__dirname + '/apps/' + appFolder + '/containers')))
-	}
-
-	applications.push(app)
 })
+
+//OLD:
+// var applications = []
+// appsFolders.forEach(function(appFolder){
+
+// 	//Inside of each app folder is two files and a folder.
+// 	//Folder is a repos of code as is
+// 	//Files are: 1) container information and 2) app configuration info
+// 	var app = appFolder,
+// 		conf: JSON.parse(fs.readFileSync(__dirname + '/apps/' + appFolder + '/conf')),
+// 		containers: JSON.parse(fs.readFileSync(__dirname + '/apps/' + appFolder + '/containers')))
+// 	}
+
+// 	applications.push(app)
+// })
 delete appFolders
 
 //Don't try to launch apps if nginx is down. Also - engaged sounds cool.

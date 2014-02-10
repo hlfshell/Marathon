@@ -1,16 +1,30 @@
 var async = require('async')
 var config = require('./config')
+var ASQ = require('./asynquence')
 
 module.exports = function(docker){
 
 	function Application(name, image){
 		this.name = name
+		this.versions = []
 		this.containers = []
 		this.startedAt = null
 
 		this.config = null
 
-		
+		//daemon focus lock
+		this.daemonFocus = false
+
+		//Loading sequences to make sure that only one update/start
+		//containers/images is done at a time
+		this.containerLoad = ASQ()
+		this.imagesLoad = ASQ()
+
+		//To prevent overwriting the most up to date change with an older one,
+		//or losing information, I will be using asynquence queues to keep
+		//writes in series.
+		this.containerWrites = ASQ()
+		this.configWrites = ASQ()
 	}
 
 	/*
@@ -24,6 +38,15 @@ module.exports = function(docker){
 	*/
 	Application.prototype.loadApplication(cb){
 		var self = this
+
+		//There are a few files that we know of that are important to us.
+
+		//config - for app specific settings.
+
+		//versions - JSON file of all version objects
+
+		//images - list of all images the application has, including the current
+
 
 
 	}
@@ -84,8 +107,6 @@ module.exports = function(docker){
 	Application.prototype.createContainer(cb){
 		var self = this
 
-		var container
-
 		async.waterfall([
 
 			//create the container
@@ -97,24 +118,41 @@ module.exports = function(docker){
 				})
 			},
 
-			//Read the container file for this app
+			//Using the container write queue, write the container
+			//to the file via reading then writing the JSON object.
 			function(container, done){
-				fs.readFile(__dirname + '/apps/' + self.name + '/containers', function(err, data){
-					if(err){
-						done(err)
-					} else {
-						done(null, container, JSON.parse(data))
-					}
-				})
-			},
 
-			//Append the container to the containers and save!
-			function(container, containers, done){
-				containers.push(container)
-				self.containers = containers
-				fs.writeFile(__dirname + '/apps/' + self.name + '/containers', JSON.stringify(containers), function(err){
-					done(err, container)
-				}
+				self.containerWrites.then(function(cb){
+
+					async.waterfall([
+
+						//Read the container file for this app
+						function(done){
+							fs.readFile(__dirname + '/apps/' + self.name + '/containers', function(err, data){
+								if(err){
+									done(err)
+								} else {
+									done(null, JSON.parse(data))
+								}
+							})
+						},
+
+						//Append the container to the containers and save!
+						function(containers, done){
+							containers.push(container)
+							self.containers = containers
+							fs.writeFile(__dirname + '/apps/' + self.name + '/containers', JSON.stringify(containers), function(err){
+								done(err, container)
+							}
+						}
+
+					], function(err){
+						done(err, container)
+						cb(null)
+					})
+
+				})
+
 			}
 
 		], function(err, container){
@@ -127,19 +165,10 @@ module.exports = function(docker){
 	* loadContainers( callback(err, containers) )
 	*
 	* Loads containers from json file containers,
-	* returns containers. Note - affected by container
-	* lock
+	* returns containers.
 	*/
 	Application.prototype.loadContainers(cb){
 		var self = this
-		if(fs.existsSync(__dirname + '/apps/' + self.name + '/containers.lock')){
-			//Because the containers isdo file locked, we set a timeout, return,
-			//and the timeout retries this until unlocked.
-			setTimeout(this.launchContainer(cb), config.marathon.lockDelay)
-			return
-		} else {
-			fs.writeFileSync(__dirname + '/apps/' + self.name + '/containers.lock', 'Such container. Much Lock. Wow.')
-		}
 
 		async.waterfall([
 
@@ -176,30 +205,32 @@ module.exports = function(docker){
 
 
 		] function(err, containers){
-			//Release lock
-			fs.unlinkSync(__dirname + '/apps/' + self.name + '/containers.lock')
 			//Return!
 			cb(err, containers)
 		})
 	}
 
-	//TODO: comment
+	//We do not want to scan the same application many times and fire off
+	//multiple start container commands if it's in the process of doing so
+	//already. As such, we keep track if the application is currently taking
+	//care of commands from a container.
 	Application.prototype.daemonFocussed(){
-		if(fs.existsSync(__dirname + '/apps/' + self.name + '/daemon.lock')){
-			return false
-		} else {
-			fs.writeFileSync(__dirname + '/apps/' + self.name + '/daemon.lock', 'You have the eye of the daemon upon you')
+		if(!this.daemonFocus){
+			this.daemonFocus = true
 			return true
+		} else {
+			return false
 		}
 	}
 
-	//TODO: comment
+	//Announces that the daemon is no longer a target of focus, allowing
+	//the daemon to check statuses and order more work to be done.
 	Application.prototype.daemonUnfocussed(){
-		if(!fs.existsSync(__dirname + '/apps/' + self.name + '/daemon.lock')){
-			return false
-		} else {
-			fs.unlinkSync(__dirname + '/apps/' + self.name + '/daemon.lock')
+		if(this.daemonFocus){
+			this.daemonFocus = false
 			return true
+		} else {
+			return false
 		}
 	}
 
