@@ -6,7 +6,7 @@ module.exports = function(docker){
 
 	function Application(name, image){
 		this.name = name
-		this.versions = []
+		// this.versions = []
 		this.containers = []
 		this.startedAt = null
 
@@ -17,8 +17,8 @@ module.exports = function(docker){
 
 		//Loading sequences to make sure that only one update/start
 		//containers/images is done at a time
-		this.containerLoad = ASQ()
-		this.imagesLoad = ASQ()
+		// this.containerLoad = ASQ()
+		// this.imagesLoad = ASQ()
 
 		//To prevent overwriting the most up to date change with an older one,
 		//or losing information, I will be using asynquence queues to keep
@@ -43,11 +43,41 @@ module.exports = function(docker){
 
 		//config - for app specific settings.
 
-		//versions - JSON file of all version objects
+		async.parallel([
 
-		//images - list of all images the application has, including the current
+			function(done){
+				fs.readFile(__dirname + '/apps/' + self.name + '/config', function(err, data){
+					if(err){
+						done(err)
+					} else {
+						self.config = JSON.parse(config)
+					}
+				})
+			},
 
+			function(done){
+				fs.readFile(__dirname + '/apps/' + self.name + '/containers', function(err, data){
+					self.containers = []
+					if(err){
+						done(err)
+					} else {
+						async.each(JSON.parse(data), function(container, done){
+							var container = docker.getContainer(container.id)
+							if(container){
+								self.containers.push(container)
+							}
+							done(null)
+						}, function(err){
+							done(err)
+						})
+					}
 
+				})
+			}
+
+		], function(err){
+			cb(err, self)
+		})
 
 	}
 
@@ -60,6 +90,43 @@ module.exports = function(docker){
 	*
 	*/
 	Application.prototype.createApplication(cb){
+		var self = this
+
+		async.parallel([
+
+			function(done){
+				self.config = {
+					
+				}
+				fs.writeFile(__dirname + '/apps/' + self.name + '/config',
+				JSON.stringify(self.config), function(err){
+					done(err)
+				})
+			},
+
+			function(done){
+				self.container = []
+				fs.writeFile(__dirname + '/apps/' + self.name + '/containers', JSON.stringify(self.containers), function(err){
+					if(err){
+						done(err)
+					} else {
+						async.each(JSON.parse(data), function(container, done){
+							var container = docker.getContainer(container.id)
+							if(container){
+								self.containers.push(container)
+							}
+							done(null)
+						}, function(err){
+							done(err)
+						})
+					}
+
+				})
+			}
+
+		], function(err){
+			cb(err, self)
+		})
 
 	}
 
